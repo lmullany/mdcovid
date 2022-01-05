@@ -5,7 +5,7 @@ library(ggplot2)
   df <- jsonlite::fromJSON("https://services.arcgis.com/njFNhDsUCentVYJW/arcgis/rest/services/MDCOVID19_MASTER_ZIP_CODE_CASES/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=json")
   df <- setDT(df$features[[1]])
   
-  newnames= c("id","zip",stringr::str_extract(names(df)[3:length(names(df))],"(?<=(F)|(total))[0-9]{1,2}_[0-9]{1,2}_202[01]"))
+  newnames= c("id","zip",stringr::str_extract(names(df)[3:length(names(df))],"(?<=(F)|(total))[0-9]{1,2}_[0-9]{1,2}_202[012]"))
   setnames(df,new=newnames)
   df <- melt(df,id.vars = c("id","zip"),variable.name = "date",value.name = "cases")
   df[,date:=as.IDate(as.Date(date,"%m_%d_%Y"))]
