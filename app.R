@@ -6,6 +6,7 @@ library(DT)
 
 #load hotspot utils
 source("www/hotspot_functions.R")
+source("www/plotly_colored_trend_line_function.R")
 
 getzips <- function(county_name,zips) {
   zips_for_this_county <- unique(zips[county==county_name, zname])
@@ -136,6 +137,10 @@ get_plot <- function(ginput, outcome, burdenline, burdenvalues=NULL, trans="iden
   return(plt)
 }
 
+get_plotly <- function(ginput, outcome, burdenline, burdenvalues=NULL, trans="identity", freey=T) {
+ plt <- plot_trend_line(ginput) 
+}
+
 prepare_table <- function(srcdata, outcome) {
   
   newnames <- c("Date","Hotspot","Zip Code","Smoothed Cases", "Confirmed Cases", "Deriv Trend","Population","First Deriv",
@@ -178,8 +183,8 @@ ui <- fluidPage(
         #htmlOutput("textdatasrc"),
         tabsetPanel(
           tabPanel("Trend Plot", 
-                   plotOutput(outputId="ctplot"),
-                   radioButtons(inputId = "trans",label = "Y-axis tranform?: ", choices =c("Normal","Square Root", "Log"), inline=T),
+                   plotlyOutput(outputId="ctplot"),
+                   radioButtons(inputId = "trans",label = "Y-axis transform?: ", choices =c("Normal","Square Root", "Log"), inline=T),
                    checkboxInput(inputId = "freey",label= "Independent Y Scales?",value=T)
                    )
           ,tabPanel("Data", dataTableOutput(outputId = "cttable"),style="font-size:50%")
@@ -247,13 +252,21 @@ server <- function(input, output, session) {
   })
   
 
-  output$ctplot <- renderPlot({
+  # output$ctplot <- renderPlot({
+  #   if(!is.null(localedata()) && all(is.na(localedata()$Smoothed))==FALSE && all(is.na(localedata()$deriv_trend))==FALSE) {
+  #     get_plot(copy(localedata()),outcome = input$outcome, burdenline=il()$includeBurdenInd,
+  #              burdenvalues = c(il()$dailyinc, il()$abscases7),input$trans, input$freey)
+  #   }
+  # })
+
+  output$ctplot <- renderPlotly({
     if(!is.null(localedata()) && all(is.na(localedata()$Smoothed))==FALSE && all(is.na(localedata()$deriv_trend))==FALSE) {
-      get_plot(copy(localedata()),outcome = input$outcome, burdenline=il()$includeBurdenInd,
+      get_plotly(copy(localedata()),outcome = input$outcome, burdenline=il()$includeBurdenInd,
                burdenvalues = c(il()$dailyinc, il()$abscases7),input$trans, input$freey)
     }
   })
   
+    
   output$cttable <- renderDataTable({
     
     locale_data_table <- prepare_table(localedata(), il()$outcome)
