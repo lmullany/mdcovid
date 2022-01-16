@@ -5,8 +5,9 @@ account: lmullany
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 3178457
-bundleId: 4531368
+bundleId: 5474389
 url: https://lmullany.shinyapps.io/marylandCOVID/
-when: 1619634505.87018
+when: 1642356502.62421
+lastSyncTime: 1642356502.62421
 asMultiple: FALSE
 asStatic: FALSE
