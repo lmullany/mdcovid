@@ -15,7 +15,25 @@ library(plotly)
 # 
 # plot_trend_markers(gginput, "deriv_trend")
 
-plot_trend_line <- function(data, interpolate=T) {
+plot_trend_line <- function(data, outcome, interpolate=T) {
+
+
+  outcomename="Cases"
+  
+  if(outcome=="Rate") {
+    outcomename="Rate (per 100 K)"
+    outcome="Confirmed"
+    data[,`:=`(Smoothed=Smoothed*100000/Population, Confirmed=Confirmed*100000/Population)]
+    data[,deriv_trend:=stringr::str_replace(deriv_trend,"Cases","Rate (per 100 K)")]
+  }
+  
+  
+  if(is.null(data)) return(NULL)
+  
+  custom_caption="Source: Maryland Department of Health"
+
+  
+  data <- data[Date>="2020-03-01" & get(outcome)>=0]
   
   data[, trend_seg:=rleid(deriv_trend)]
   
@@ -23,9 +41,15 @@ plot_trend_line <- function(data, interpolate=T) {
     new_rows = interpolate_trend(data)
     data <- rbind(data,new_rows,fill=TRUE)[order(trend_seg,Date)]
   }
-  print(data[1:6])
+
+
+  #data[, deriv_trend:=paste0(outcomename, " ", str_remove(deriv_trend, "^(Cases | Rate (per 100 K))"))]
+  # names(scale_values) <- c(paste0(outcomename, " Increasing (Accelerating)"),
+  #                          paste0(outcomename, " Increasing (Decelerating)"),
+  #                          paste0(outcomename, " Decreasing"))
   
-  trend_names = unique(data[["deriv_trend"]])
+
+  trend_names = unique(data$deriv_trend)
   trend_colors = list("red","orange","green")
   names(trend_colors) = trend_names
   
@@ -59,7 +83,16 @@ plot_trend_line <- function(data, interpolate=T) {
               name="Observed",
               mode="markers",
               marker=list(color="black", opacity=0.3)) %>% 
-    layout(legend=list(x=.1, y=.75, yref="paper", xref="paper",orientation='h'))
+    layout(
+      legend=list(x=.1, y=.75, yref="paper", xref="paper",orientation='h'),
+      yaxis=list(title=list(text=outcomename)),
+      xaxis=list(title=list(text="")),
+      annotations = list(
+        x = 1, y = -0.1, text = custom_caption,
+        showarrow = F, xref='paper', yref='paper',
+        xanchor='right', yanchor='auto', xshift=0, yshift=0,
+        font=list(size=10, color="black"))
+      )
   
   return(p)
 }
@@ -80,9 +113,9 @@ interpolate_trend <- function(gginput) {
   return(new_rows)
 }
 
-inputs = list(county = "Carroll County", "zip" = NULL, outcome="Confirmed", knot_interval = 21, dist="poisson")
-gginput <- get_locale_data(inputs, df)[]
-
-gginput[, trend_seg:=rleid(deriv_trend)]
-plot_trend_line(gginput)
-#interpolate_trend(gginput)[]
+# inputs = list(county = "Carroll County", "zip" = NULL, outcome="Confirmed", knot_interval = 21, dist="poisson")
+# gginput <- get_locale_data(inputs, df)[]
+# 
+# gginput[, trend_seg:=rleid(deriv_trend)]
+# plot_trend_line(gginput, outcome="Confirmed")
+# #interpolate_trend(gginput)[]
