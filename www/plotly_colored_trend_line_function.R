@@ -28,8 +28,10 @@ plot_trend_line <- function(data, outcome, interpolate=T) {
   }
   
   
-  if(is.null(data)) return(NULL)
-  
+  if(is.null(data)) {
+    print("no data")
+    return(NULL)
+  }
   custom_caption="Source: Maryland Department of Health"
 
   
@@ -42,16 +44,18 @@ plot_trend_line <- function(data, outcome, interpolate=T) {
     data <- rbind(data,new_rows,fill=TRUE)[order(trend_seg,Date)]
   }
 
-
-  #data[, deriv_trend:=paste0(outcomename, " ", str_remove(deriv_trend, "^(Cases | Rate (per 100 K))"))]
-  # names(scale_values) <- c(paste0(outcomename, " Increasing (Accelerating)"),
-  #                          paste0(outcomename, " Increasing (Decelerating)"),
-  #                          paste0(outcomename, " Decreasing"))
+  base_colors = list(
+    `Rate (per 100 K) Decreasing` = "green",
+    `Rate (per 100 K) Increasing (Accelerating)` = "red",
+    `Rate (per 100 K) Increasing (Decelerating)` = "orange"
+  )
   
-
   trend_names = unique(data$deriv_trend)
-  trend_colors = list("red","orange","green")
-  names(trend_colors) = trend_names
+  trend_colors=base_colors[trend_names]
+  #trend_colors =list(rep(as.character(NA),times=length(trend_names)))
+  #trend_colors = list("red","orange","green")
+  #names(trend_colors) = trend_names
+  #return(base_colors[trend_names])
   
   legend_on = data[data[, .I[1], by=deriv_trend]$V1,trend_seg]
   #return(legend_on)
