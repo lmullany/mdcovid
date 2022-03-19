@@ -202,6 +202,7 @@ server <- function(input, output, session) {
     checkFunc <- function() {runif(1)},
     valueFunc <- function() {
       source("www/pull_county_data.R",chdir=T)
+      df[date=="2022-02-16",daily:=NA]
       setnames(df,old=c("pop","date","cases","daily"),new=c("Population","Date","cumConfirmed","Confirmed"))
       #get unique states and counties
       counties <- unique(zipcodenames[,county])
