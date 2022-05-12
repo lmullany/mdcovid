@@ -15,12 +15,12 @@ getzips <- function(county_name,zips) {
 
 get_data_subset <- function(inputs,df) {
   res <- copy(df)
-  if(length(inputs$county)==1 && inputs$county=="All Counties") {
+  
+  if(length(inputs$county)==1 & inputs[["county"]]=="All Counties") {
     res = res[,lapply(.SD,sum, na.rm=T), by=c("Date"), .SDcols=c("Population", "cumConfirmed", "Confirmed")]
     res[,zname:="All Zip Codes"]
     return(res)
-  }
-  else {
+  } else {
     if(is.null(inputs$zip)) inputs$zip="All Zip Codes"
     res = res[county %in% inputs$county]
     if(inputs$zip[1] != "All Zip Codes") {
@@ -31,15 +31,26 @@ get_data_subset <- function(inputs,df) {
       res[,zname:="All Zip Codes"]
     }
     return(res)
-    #} else {
-    #  res=res[zname %in% inputs$zip]
-    #  return(res)
-    #}
   }  
 }
 
+add_zero_dates <- function(df) {
+  dates = seq.Date(as.Date(min(df$Date)), as.Date(max(df$Date)),1)
+  zname_fill = df[1,zname]
+  df[SJ(Date=dates), on="Date"][
+    , `:=`(
+      cumConfirmed=nafill(cumConfirmed, "locf"),
+      Confirmed=nafill(Confirmed, fill = 0),
+      Population = nafill(Population,"locf"),
+      zname = fifelse(is.na(zname), zname_fill,zname)
+    )]
+}
+
+
 get_locale_data <- function(inputs,df) {
   res <- get_data_subset(inputs, df)
+  res <- add_zero_dates(res)
+  
   if(nrow(res)<=0) return(NULL)
   
   if(inputs[["dist"]] == "poisson") {
@@ -55,6 +66,7 @@ get_locale_data <- function(inputs,df) {
     smooth_alg = chosen_dist,
     knot_interval = inputs$knot_interval,
     geo_level="zname")
+
   #get derivative trend
   res[,deriv_trend:=derivative_trend_category(fderiv,sderiv, outcome = "Cases")]
   #get the hotspot status and retain indicators

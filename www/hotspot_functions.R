@@ -59,6 +59,8 @@ get_smoothing_vars <- function(df, date_col="Date",
                                knot_interval=3,
                                geo_level=NULL) {
   res = setDT(df)
+  
+
   #get the smoothed values
   res[, (sm_col_name) := smooth_alg(as.numeric(get(date_col)), get(raw_col),knot_interval=knot_interval), by=geo_level]
   #get the first and second deriv
