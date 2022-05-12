@@ -15,7 +15,7 @@ library(plotly)
 # 
 # plot_trend_markers(gginput, "deriv_trend")
 
-plot_trend_line <- function(data, outcome, interpolate=T) {
+plot_trend_line <- function(data, outcome, interpolate=T, start_date="2022-02-01") {
 
 
   outcomename="Cases"
@@ -35,7 +35,7 @@ plot_trend_line <- function(data, outcome, interpolate=T) {
   custom_caption="Source: Maryland Department of Health"
 
   
-  data <- data[Date>="2020-03-01" & get(outcome)>=0]
+  data <- data[Date>=start_date & get(outcome)>=0]
   
   data[, trend_seg:=rleid(deriv_trend)]
   
@@ -52,13 +52,9 @@ plot_trend_line <- function(data, outcome, interpolate=T) {
   
   trend_names = unique(data$deriv_trend)
   trend_colors=base_colors[trend_names]
-  #trend_colors =list(rep(as.character(NA),times=length(trend_names)))
-  #trend_colors = list("red","orange","green")
-  #names(trend_colors) = trend_names
-  #return(base_colors[trend_names])
   
   legend_on = data[data[, .I[1], by=deriv_trend]$V1,trend_seg]
-  #return(legend_on)
+  
   
   p <- plot_ly(type="scatter", mode="lines")
   for(trend_val in seq(1,data[,max(trend_seg)])) {
@@ -88,7 +84,10 @@ plot_trend_line <- function(data, outcome, interpolate=T) {
               mode="markers",
               marker=list(color="black", opacity=0.3)) %>% 
     layout(
-      legend=list(x=.1, y=.75, yref="paper", xref="paper",orientation='h'),
+      legend=list(
+        x=.1, y=.95,
+        yref="paper", xref="paper",orientation='h',
+        bgcolor = 'rgba(0,0,0,0)'),
       yaxis=list(title=list(text=outcomename)),
       xaxis=list(title=list(text="")),
       annotations = list(

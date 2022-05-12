@@ -137,8 +137,8 @@ get_plot <- function(ginput, outcome, burdenline, burdenvalues=NULL, trans="iden
   return(plt)
 }
 
-get_plotly <- function(ginput, outcome, burdenvalues=NULL, trans="identity", freey=T) {
-  plt <- plot_trend_line(ginput, outcome, interpolate=T) 
+get_plotly <- function(ginput, outcome, burdenvalues=NULL, trans="identity", freey=T, start_date="2022-02-01") {
+  plt <- plot_trend_line(ginput, outcome, interpolate=T,start_date=start_date) 
 }
 
 prepare_table <- function(srcdata, outcome) {
@@ -168,9 +168,10 @@ ui <- fluidPage(
       sidebarPanel(
         selectizeInput(inputId = "countyselect", label="Select County: ", choices=NULL),
         selectizeInput(inputId = "zipselect",label = "Select Zip: ", choices = NULL, multiple=FALSE),
-        radioButtons(inputId = "outcome", label="Outcome: ", choices=c("Cases" = "Confirmed", "Daily Rate per 100K" = "Rate"), inline=T, selected="Rate"),
-        numericInput(inputId = "knot_interval",label="Smoothing knot-interval (weeks, default=3)",value=3,min=1,max=52,step=1),
-        radioButtons(inputId = "dist", label="Distribution", choices=c("Gaussian" = "gaussian","Poisson" = "poisson"),selected = "poisson")
+        #radioButtons(inputId = "outcome", label="Outcome: ", choices=c("Cases" = "Confirmed", "Daily Rate per 100K" = "Rate"), inline=T, selected="Rate"),
+        numericInput(inputId = "knot_interval",label="Smoothing knot-interval (weeks, default=3)",value=3,min=1,max=52,step=1), 
+        #sliderInput()
+        #radioButtons(inputId = "dist", label="Distribution", choices=c("Gaussian" = "gaussian","Poisson" = "poisson"),selected = "poisson")
         # checkboxInput(inputId = "includeBurdenInd", label="Add threshold line?", value=TRUE),
         # conditionalPanel(condition = "input.outcome=='Rate'",
         #                  numericInput(inputId = "dailyinc",label = "Smoothed Daily Cases per 100,000",value = 18,min=0,step = 1)
@@ -183,7 +184,8 @@ ui <- fluidPage(
         #htmlOutput("textdatasrc"),
         tabsetPanel(
           tabPanel("Trend Plot", 
-                   plotlyOutput(outputId="ctplot")
+                   plotlyOutput(outputId="ctplot"),
+                   sliderInput("start_date", "Show Data Since:", value=as.Date("2022-02-01"),min=as.Date("2020-03-01"), max = as.Date(Sys.Date()-10))
                    #radioButtons(inputId = "trans",label = "Y-axis transform?: ", choices =c("Normal","Square Root", "Log"), inline=T),
                    #checkboxInput(inputId = "freey",label= "Independent Y Scales?",value=T)
                    )
@@ -202,7 +204,12 @@ server <- function(input, output, session) {
     checkFunc <- function() {runif(1)},
     valueFunc <- function() {
       source("www/pull_county_data.R",chdir=T)
+      
+      # manual cleaning.. 
       df[date=="2022-02-16",daily:=NA]
+      
+      # to do: we should add zeroes on missing days? (or perhaps do that in the estimation process?)
+      
       setnames(df,old=c("pop","date","cases","daily"),new=c("Population","Date","cumConfirmed","Confirmed"))
       #get unique states and counties
       counties <- unique(zipcodenames[,county])
@@ -217,7 +224,13 @@ server <- function(input, output, session) {
   )
   
   #output$location = renderText({paste0("<b>Maryland - ",county(), " - ", zip(), " (Population: ",unique(localedata()$Population),")</b>")})
-  output$location = renderText({paste0("<b>MD - ", county()," - ",paste0(stringr::str_sub(zip(),1,5),collapse=","), "</b>")})
+  output$location = renderText({
+    z = paste0(stringr::str_sub(zip(),1,5),collapse=",")
+    if(z=="All Z") {
+      z = "All Zip Codes"
+    }
+    paste0("<b>MD - ", county()," - ",z, "</b>")
+    })
   
   il <- reactive({
     list(
@@ -225,7 +238,8 @@ server <- function(input, output, session) {
     "zip" = input$zipselect,
     "outcome"="Confirmed",
     "knot_interval" = input$knot_interval*7,
-    "dist" = input$dist,
+    "dist" = "poisson",
+    "start_date" = input$start_date,
     # "dailyinc" = input$dailyinc,
     # "abscases7" = input$dailyinc,
     # "includeBurdenInd" = input$includeBurdenInd)
@@ -263,9 +277,9 @@ server <- function(input, output, session) {
   output$ctplot <- renderPlotly({
     if(!is.null(localedata()) && all(is.na(localedata()$Smoothed))==FALSE && all(is.na(localedata()$deriv_trend))==FALSE) {
       get_plotly(copy(localedata()),
-                 outcome = input$outcome,
+                 outcome = "Rate",
                  burdenvalues = c(il()$dailyinc, il()$abscases7),
-                 input$trans, input$freey)
+                 input$trans, input$freey, input$start_date)
     }
   })
   
